@@ -17,6 +17,8 @@
 
 		$opt = getopt("n:");
 
+		$c->isDebug();
+		
 		$c->setUrl($opt["n"]);
 		$c->setData("a","n");
 		// $c->setData("a","u");

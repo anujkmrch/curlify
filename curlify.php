@@ -1,5 +1,11 @@
 <?php
 /**
+ * Logging function to print
+ */
+function devel_logging($log){
+	print_r($log);
+}
+/**
  * Curl Class for executing the curl object
  */
 class Curlify
@@ -26,6 +32,13 @@ class Curlify
 	
 	var $isVerbose = false;
 	
+	var $debug = false;
+
+	function isDebug()
+	{
+		$this->debug = !$this->debug;
+	}
+
 	/**
 	 * get the current url
 	 */
@@ -61,6 +74,27 @@ class Curlify
 		else:
 			$this->data[$key] = $value;
 		endif;
+	}
+
+	function addFile($key,$path)
+	{
+		if(array_key_exists($key,$this->files)):
+			if (!is_array($this->files[$key])):
+				$temp = $this->files[$key];
+				$this->files[$key] = [];
+				$this->files[$key][] = $temp;
+				$this->files[$key][] = $path;
+			else:
+				$this->files[$key][] = $path;
+			endif;
+		else:
+			$this->files[$key] = $path;
+		endif;
+	}
+
+	function removeFile($key,$removeByPath)
+	{
+
 	}
 
 	/**
@@ -130,17 +164,18 @@ class Curlify
 			#check if the post request
 			if ($this->isPost):
 				curl_setopt($request, CURLOPT_POST, 1);
-				if(count($this->data))
+				if(count($this->data) or count($this->files))
 					curl_setopt($ch,CURLOPT_POSTFIELDS,http_build_query($this->data));
 			endif;
 
 			if (!$response = curl_exec($request)):
-				print('Error: "' . curl_error($request) . '" - Code: ' . curl_errno($request)."\n");
+				if($this->debug)
+					devel_logging('Error: "' . curl_error($request) . '" - Code: ' . curl_errno($request)."\n");
 				return false;
 			endif;
 			
 			$info = curl_getinfo($request);
-			
+
 			curl_close($request);
 
 			if ($raw){
@@ -152,14 +187,25 @@ class Curlify
 
 			if($sortHeader):
 				$lines = explode("\n", $headers);
+				$headers = [];
 				$status = array_shift($lines);
-				print_r($lines);
+				$headers["Status"] = $status;
+				$headers["Code"] = $info["http_code"];
+				foreach ($lines as $line):
+			        list ($key, $value) = explode(': ', $line);
+			        $headers[$key] = $value;
+			    endforeach;
+				if($this->debug){
+					devel_logging($headers);
+				}
 			endif;
-			return ['headers'=>$headers,'body'=>$body];
+			return ['headers'=>$headers,'body'=>$body,'info'=>$info];
 		else:
-			print "invalid url or url not set yet\n";
+			if($this->debug == 1)
+				devel_logging("invalid url or url not set yet\n");
 		return false;
 		endif;
 	}
 }
+
 ?>
