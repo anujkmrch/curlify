@@ -16,9 +16,12 @@
 		# php record.php -n domainname
 
 		$opt = getopt("n:");
-		
+
 		$c->setUrl($opt["n"]);
-		
+		$c->setData("a","n");
+		// $c->setData("a","u");
+		// $c->setData("a","j");
+		// $c->setData("a","kumar","surname");
 		$c->requestNow(false,true);
 	
 	endif;
