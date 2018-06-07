@@ -24,21 +24,32 @@ class Curlify
 	var $isSecure = false;
 	
 	var $isVerbose = false;
+	
+	/**
+	 * get the current url
+	 */
 	function getUrl()
 	{
 		return $this->url;
 	}
 
+	/**
+	  * set the current url
+	  */
 	function setUrl($url){
 		$this->url = $url;
 	}
-
+	/**
+	 * Method which verifies whether the current url is a valid url or not
+	 * before making request
+	 */
 	function verifyUrl()
 	{
 		return true;
 	}
 	/**
-	*/
+	 * Method to create url component from the data
+	 */
 	function buildRequestUrl()
 	{
 		return $this->url;
@@ -60,11 +71,21 @@ class Curlify
 			    CURLOPT_URL => $this->buildRequestUrl(),
 			));
 
+			if ($this->isPost):
+			
+				curl_setopt($request, CURLOPT_POST, 1);
+			
+				curl_setopt($ch, CURLOPT_POSTFIELDS,"postvar1=value1&postvar2=value2&postvar3=value3");
+
+			endif;
+
 			if (!$response = curl_exec($request)):
 				print('Error: "' . curl_error($request) . '" - Code: ' . curl_errno($request)."\n");
 				return false;
 			endif;
+			
 			$info = curl_getinfo($request);
+			
 			curl_close($request);
 
 			if ($raw){
