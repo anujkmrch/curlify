@@ -1,9 +1,9 @@
-# php-curlify
-making curl request from php script, I build curlify class as a fun project, with the help of this class you can make api calls from php script
+# curlify
+making curl request from php and python script, I build curlify class as a fun project, with the help of this class you can make api calls from php script
 
 ## How to use
 Primarily, I build it using with the command line interface (CLI) but you can also use it within your web application.
-To use this class, please have a look at the record.php for reference. in my case record.php is the main file which initialize curlify object and sets the url, data and other parameters.
+To use this class, please have a look at the record file for reference. in my case record.php or record.py is the main file which initialize curlify object and sets the url, data and other parameters.
 
 This class is wonderful for making remote api call for developing  a SDK for rest api based service. all you need to send the data and set the parameter.
 
