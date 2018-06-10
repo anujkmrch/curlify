@@ -21,22 +21,28 @@ class Curlify
 	var $data = [];
 
 	# is request a post request or get request
-	var $isPost = false;
-	var $isHead = false;
-	var $isPut = false;
+	var $post = false;
+	var $head = false;
+	var $put = false;
 
-	var $isDelete = false;
-	var $isTrace = false;
-	var $isConnect = false;
+	var $delete = false;
+	var $trace = false;
+	var $connect = false;
 
-	var $isSecure = false;
-	var $isVerbose = false;
+	var $secure = false;
+	var $verbose = false;
 	
 	var $debug = false;
 
 	function isDebug()
 	{
 		$this->debug = !$this->debug;
+	}
+
+
+	function isPost()
+	{
+		$this->post = ! $this->post;
 	}
 
 	/**
@@ -81,8 +87,8 @@ class Curlify
 	{
 		# set method type = post, 
 		# if method = get or something else
-		if (!$this->isPost)
-			$this->isPost = true;
+		if (!$this->post)
+			$this->post = true;
 
 		if(array_key_exists($key,$this->files)):
 			if (!is_array($this->files[$key])):
@@ -91,11 +97,11 @@ class Curlify
 				$this->files[$key][] = $temp;
 			endif;
 			if($subkey)
-				$this->data[$key][$subkey] = $path;
+				$this->data[$key][$subkey] = '@'.$path;
 			else
-				$this->data[$key][] = $path;
+				$this->data[$key][] = '@'.$path;
 		else:
-			$this->files[$key] = $path;
+			$this->files[$key] = '@'.$path;
 		endif;
 	}
 
@@ -137,7 +143,7 @@ class Curlify
 	{
 		$parts = parse_url($this->url);
 
-		if($this->isSecure and substr(strtolower($parts['scheme']),-1) != 's')
+		if($this->secure and substr(strtolower($parts['scheme']),-1) != 's')
 			$parts["scheme"] = $parts["scheme"]."s";
 
 		if(array_key_exists('query', $parts)):
@@ -147,7 +153,7 @@ class Curlify
 		
 		$url = $parts["scheme"]."://".$parts["host"];
 		$url .= isset($parts["path"]) ? $parts["path"] : '';
-		$url .= count($this->data) && !$this->isPost ? '?'.http_build_query($this->data) : '';
+		$url .= count($this->data) && !$this->post ? '?'.http_build_query($this->data) : '';
 		$url .= isset($parts["fragment"]) ? '#'.$parts["fragment"] : '';
 
 		return urldecode($url);
@@ -163,16 +169,17 @@ class Curlify
 			curl_setopt_array($request, array(
 			    CURLOPT_RETURNTRANSFER => 1,
 			    CURLOPT_HEADER=> 1,
-			    CURLOPT_VERBOSE=> $this->isVerbose,
+			    CURLOPT_VERBOSE=> $this->verbose,
 			    CURLOPT_USERAGENT => $this->userAgent,
 			    CURLOPT_URL => $this->buildRequestUrl(),
 			));
 
 			#check if the post request
-			if ($this->isPost):
+			if ($this->post):
 				curl_setopt($request, CURLOPT_POST, 1);
+				$postData = array_merge($this->data,$this->files);
 				if(count($this->data) or count($this->files))
-					curl_setopt($ch,CURLOPT_POSTFIELDS,http_build_query($this->data));
+					curl_setopt($ch,CURLOPT_POSTFIELDS,$this->data);
 			endif;
 
 			if (!$response = curl_exec($request)):
