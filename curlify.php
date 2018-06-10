@@ -20,6 +20,8 @@ class Curlify
 	# Reqeust parameters
 	var $data = [];
 
+	var $files = [];
+
 	# is request a post request or get request
 	var $post = false;
 	var $head = false;
@@ -33,7 +35,10 @@ class Curlify
 	var $verbose = false;
 	
 	var $debug = false;
-
+	function setUserAgent($userAgent)
+	{
+		$this->userAgent = $userAgent;
+	}
 	function isDebug()
 	{
 		$this->debug = !$this->debug;
@@ -85,23 +90,22 @@ class Curlify
 	 */
 	function addFile($key,$path,$subkey=null)
 	{
-		# set method type = post, 
-		# if method = get or something else
-		if (!$this->post)
-			$this->post = true;
-
-		if(array_key_exists($key,$this->files)):
-			if (!is_array($this->files[$key])):
-				$temp = $this->files[$key];
-				$this->files[$key] = [];
-				$this->files[$key][] = $temp;
+		if (file_exists($path)):
+			# set method type = post, 
+			# if method = get or something else
+			if (!$this->post)
+				$this->post = true;
+			
+			if(array_key_exists($key,$this->files)):
+				if (!is_array($this->files[$key])):
+					$temp = $this->files[$key];
+					$this->files[$key] = [];
+					$this->files[$key][] = $temp;
+				endif;
+				$this->files[$key][] = new CurlFile(realpath($path),mime_content_type(realpath($path)));
+			else:
+				$this->files[$key] = new CurlFile(realpath($path),mime_content_type(realpath($path)));
 			endif;
-			if($subkey)
-				$this->data[$key][$subkey] = '@'.$path;
-			else
-				$this->data[$key][] = '@'.$path;
-		else:
-			$this->files[$key] = '@'.$path;
 		endif;
 	}
 
@@ -152,6 +156,7 @@ class Curlify
 		endif;
 		
 		$url = $parts["scheme"]."://".$parts["host"];
+		$url .= isset($parts["port"]) ? ':'.$parts["port"] : '';
 		$url .= isset($parts["path"]) ? $parts["path"] : '';
 		$url .= count($this->data) && !$this->post ? '?'.http_build_query($this->data) : '';
 		$url .= isset($parts["fragment"]) ? '#'.$parts["fragment"] : '';
@@ -178,8 +183,9 @@ class Curlify
 			if ($this->post):
 				curl_setopt($request, CURLOPT_POST, 1);
 				$postData = array_merge($this->data,$this->files);
+				// devel_logging($postData);
 				if(count($this->data) or count($this->files))
-					curl_setopt($ch,CURLOPT_POSTFIELDS,$this->data);
+					curl_setopt($request,CURLOPT_POSTFIELDS,$postData);
 			endif;
 
 			if (!$response = curl_exec($request)):
