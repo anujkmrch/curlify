@@ -70,7 +70,6 @@ class Curlify
 				$this->data[$key][$subkey] = $value;
 			else
 				$this->data[$key][] = $value;
-			endif;
 		else:
 			$this->data[$key] = $value;
 		endif;
