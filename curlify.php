@@ -5,6 +5,7 @@
 function devel_logging($log){
 	print_r($log);
 }
+
 /**
  * Curl Class for executing the curl object
  */
@@ -21,15 +22,14 @@ class Curlify
 
 	# is request a post request or get request
 	var $isPost = false;
-
 	var $isHead = false;
 	var $isPut = false;
+
 	var $isDelete = false;
 	var $isTrace = false;
 	var $isConnect = false;
 
 	var $isSecure = false;
-	
 	var $isVerbose = false;
 	
 	var $debug = false;
@@ -54,6 +54,9 @@ class Curlify
 		$this->url = $url;
 	}
 
+	/**
+	 * Create the data to be posted with the url or post data
+	 */
 	function setData($key,$value,$subkey=null)
 	{
 		if(array_key_exists($key,$this->data)):
@@ -61,32 +64,37 @@ class Curlify
 				$temp = $this->data[$key];
 				$this->data[$key] = [];
 				$this->data[$key][] = $temp;
-				if($subkey)
-					$this->data[$key][$subkey] = $value;
-				else
-					$this->data[$key][] = $value;
-			else:
-				if($subkey)
-					$this->data[$key][$subkey] = $value;
-				else
+			endif;
+			
+			if($subkey)
+				$this->data[$key][$subkey] = $value;
+			else
 				$this->data[$key][] = $value;
 			endif;
 		else:
 			$this->data[$key] = $value;
 		endif;
 	}
-
-	function addFile($key,$path)
+	/**
+	 * Add file to be posted with the post data
+	 */
+	function addFile($key,$path,$subkey=null)
 	{
+		# set method type = post, 
+		# if method = get or something else
+		if (!$this->isPost)
+			$this->isPost = true;
+
 		if(array_key_exists($key,$this->files)):
 			if (!is_array($this->files[$key])):
 				$temp = $this->files[$key];
 				$this->files[$key] = [];
 				$this->files[$key][] = $temp;
-				$this->files[$key][] = $path;
-			else:
-				$this->files[$key][] = $path;
 			endif;
+			if($subkey)
+				$this->data[$key][$subkey] = $path;
+			else
+				$this->data[$key][] = $path;
 		else:
 			$this->files[$key] = $path;
 		endif;
@@ -207,5 +215,4 @@ class Curlify
 		endif;
 	}
 }
-
 ?>
