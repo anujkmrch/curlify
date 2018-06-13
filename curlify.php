@@ -13,10 +13,10 @@ class Curlify
 {
 	#request url
 	var $url = null;
-	
+
 	#User agent
 	var $userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36";
-	
+
 	# Reqeust parameters
 	var $data = [];
 
@@ -33,25 +33,42 @@ class Curlify
 
 	var $secure = false;
 	var $verbose = false;
-	
+
 	var $debug = false;
+
+	var $handleRedirect = false;
+
+	/**
+	 * Set UserAgent for your curl agent
+	 * @author Anuj Kumar
+	 * @param string $userAgent
+	 */
 	function setUserAgent($userAgent)
 	{
 		$this->userAgent = $userAgent;
 	}
+
+	/**
+	 * Enable/ Disable Debugging
+	 * @author Anuj Kumar
+	 */
 	function isDebug()
 	{
 		$this->debug = !$this->debug;
 	}
 
-
+	/**
+	 * Enable/ Disable post Variable
+	 * @author Anuj Kumar
+	 */
 	function isPost()
 	{
 		$this->post = ! $this->post;
 	}
 
 	/**
-	 * get the current url
+	 * Return current url for the curlify object
+	 * @author Anuj Kumar
 	 */
 	function getUrl()
 	{
@@ -59,14 +76,20 @@ class Curlify
 	}
 
 	/**
-	  * set the current url
-	  */
+	 * Set current url to be requested
+	 * @author Anuj Kumar
+	 * @param string $url
+	 */
 	function setUrl($url){
 		$this->url = $url;
 	}
 
 	/**
-	 * Create the data to be posted with the url or post data
+	 * Insert the data to be posted with the url as get or post data
+	 * @author Anuj Kumar
+	 * @param string $key data key to be recognized at server side.
+	 * @param string $value data value corresponding to the key
+	 * @param string $subkey (optional) for set new key for array for sub array
 	 */
 	function setData($key,$value,$subkey=null)
 	{
@@ -76,7 +99,7 @@ class Curlify
 				$this->data[$key] = [];
 				$this->data[$key][] = $temp;
 			endif;
-			
+
 			if($subkey)
 				$this->data[$key][$subkey] = $value;
 			else
@@ -85,17 +108,18 @@ class Curlify
 			$this->data[$key] = $value;
 		endif;
 	}
+
 	/**
 	 * Add file to be posted with the post data
 	 */
 	function addFile($key,$path,$subkey=null)
 	{
 		if (file_exists($path)):
-			# set method type = post, 
+			# set method type = post,
 			# if method = get or something else
 			if (!$this->post)
 				$this->post = true;
-			
+
 			if(array_key_exists($key,$this->files)):
 				if (!is_array($this->files[$key])):
 					$temp = $this->files[$key];
@@ -109,9 +133,16 @@ class Curlify
 		endif;
 	}
 
-	function removeFile($key,$removeByPath)
+	/**
+	 * Remove files from the file list
+	 */
+	function removeFile($key)
 	{
-
+		if(array_key_exists($key, $this->files)){
+			unset($this->files[$key]);
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -119,7 +150,7 @@ class Curlify
 	 */
 	function getData($key = null)
 	{
-		if($key and array_key_exists($key,$this->data)):	
+		if($key and array_key_exists($key,$this->data)):
 			return $this->data[$key];
 		elseif (!$key):
 			return false;
@@ -154,7 +185,7 @@ class Curlify
 			parse_str($parts["query"],$query);
 			$this->data = array_merge($this->data,$query);
 		endif;
-		
+
 		$url = $parts["scheme"]."://".$parts["host"];
 		$url .= isset($parts["port"]) ? ':'.$parts["port"] : '';
 		$url .= isset($parts["path"]) ? $parts["path"] : '';
@@ -164,9 +195,34 @@ class Curlify
 		return urldecode($url);
 	}
 
-	/**
-	  *
-	  */
+	function buildPostData($data,$prefix=null) {
+
+		$tree = [];
+		foreach($data as $key => $element) {
+			if (is_array($element)) {
+				$tree = array_merge($tree, $this->buildPostData($element,$prefix = $key));
+			} else {
+				$tree[$prefix.'['.$key.']'] = $element;
+			}
+		}
+		return $tree;
+	}
+
+	function buildPostFiles($data,$prefix=null) {
+		$tree = [];
+		foreach($data as $key => $element) {
+			if (is_array($element)) {
+				$tree = array_merge($tree, $this->buildPostFiles($element,$prefix = $key));
+			} else {
+				if($prefix)
+					$tree[$prefix.'['.$key.']'] = $element;
+				else
+					$tree[$key] = $element;
+			}
+		}
+		return $tree;
+	}
+	
 	function requestNow($raw = false,$sortHeader = false)
 	{
 		if ($this->url && $this->verifyUrl()):
@@ -179,12 +235,29 @@ class Curlify
 			    CURLOPT_URL => $this->buildRequestUrl(),
 			));
 
+			if($this->handleRedirect)
+				curl_setopt($request, CURLOPT_FOLLOWLOCATION, true);
+
 			#check if the post request
 			if ($this->post):
 				curl_setopt($request, CURLOPT_POST, 1);
-				$postData = array_merge($this->data,$this->files);
-				// devel_logging($postData);
 				if(count($this->data) or count($this->files))
+					$postData = array_merge($this->buildPostData($this->data),$this->buildPostFiles($this->files));
+
+					// // $postData = [];
+					// if (count($this->files) and count($this->data) === 0){
+					// 	$postData = $this->files;
+					// }
+					// elseif (count($this->data) and count($this->files) === 0){
+					// 	$postData = array_merge($this->data,[]);
+					// } else {
+					// 	$files = $this->buildFileData();
+					// 	$postData = array_merge($this->data,$files);
+					// 	// $postData = $this->data;
+					// }
+
+					// devel_logging($postData);
+					
 					curl_setopt($request,CURLOPT_POSTFIELDS,$postData);
 			endif;
 
@@ -193,7 +266,7 @@ class Curlify
 					devel_logging('Error: "' . curl_error($request) . '" - Code: ' . curl_errno($request)."\n");
 				return false;
 			endif;
-			
+
 			$info = curl_getinfo($request);
 
 			curl_close($request);
@@ -225,6 +298,11 @@ class Curlify
 				devel_logging("invalid url or url not set yet\n");
 		return false;
 		endif;
+	}
+
+	function hello($name)
+	{
+
 	}
 }
 ?>
