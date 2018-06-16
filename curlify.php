@@ -38,6 +38,8 @@ class Curlify
 
 	var $handleRedirect = false;
 
+	var $optHeader = [];
+
 	/**
 	 * Set UserAgent for your curl agent
 	 * @author Anuj Kumar
@@ -111,6 +113,10 @@ class Curlify
 
 	/**
 	 * Add file to be posted with the post data
+	 * @author Anuj Kumar
+	 * @param string $key data key to be recognized at server side.
+	 * @param string $path file path to be uploaded
+	 * @param string $subkey (optional) for set new key for array for sub array
 	 */
 	function addFile($key,$path,$subkey=null)
 	{
@@ -132,9 +138,11 @@ class Curlify
 			endif;
 		endif;
 	}
-
 	/**
-	 * Remove files from the file list
+	 * Remove files from the file list, and tells whether files removed
+	 * @author Anuj Kumar
+	 * @param string $key data key to be recognized at server side.
+	 * @return boolean true/false
 	 */
 	function removeFile($key)
 	{
@@ -147,12 +155,15 @@ class Curlify
 
 	/**
 	 * return the data to be sent to the post
+	 * @author Anuj Kumar
+	 * @param string $key data key to be recognized at server side.
+	 * @return array
 	 */
 	function getData($key = null)
 	{
 		if($key and array_key_exists($key,$this->data)):
 			return $this->data[$key];
-		elseif (!$key):
+		elseif (!$key and !is_null($key)):
 			return false;
 		endif;
 		return $this->data;
@@ -161,6 +172,9 @@ class Curlify
 	/**
 	 * Method which verifies whether the current url is a valid url or not
 	 * before making request
+	 * @author Anuj Kumar
+	 * @param string $key data key to be recognized at server side.
+	 * @return boolean true/false
 	 */
 	function verifyUrl()
 	{
@@ -173,6 +187,9 @@ class Curlify
 
 	/**
 	 * Method to create url component from the data
+	 * @author Anuj Kumar
+	 * @param string $key data key to be recognized at server side.
+	 * @return boolean true/false
 	 */
 	function buildRequestUrl()
 	{
@@ -191,12 +208,16 @@ class Curlify
 		$url .= isset($parts["path"]) ? $parts["path"] : '';
 		$url .= count($this->data) && !$this->post ? '?'.http_build_query($this->data) : '';
 		$url .= isset($parts["fragment"]) ? '#'.$parts["fragment"] : '';
-
 		return urldecode($url);
 	}
 
+	/**
+	 * Build flatten data for post request
+	 * @author Anuj Kumar
+	 * @param string $prefix prefix for flatten key, using for subkey
+	 * @return boolean true/false
+	 */
 	function buildPostData($data,$prefix=null) {
-
 		$tree = [];
 		foreach($data as $key => $element) {
 			if (is_array($element)) {
@@ -208,6 +229,13 @@ class Curlify
 		return $tree;
 	}
 
+	/**
+	 * Build flatten file path for post request
+	 * @author Anuj Kumar
+	 * @param array $data
+	 * @param string $prefix prefix for flatten key, using for subkey
+	 * @return boolean true/false
+	 */
 	function buildPostFiles($data,$prefix=null) {
 		$tree = [];
 		foreach($data as $key => $element) {
@@ -223,6 +251,13 @@ class Curlify
 		return $tree;
 	}
 	
+	/**
+	 * Arrange all the elements together and make a request to the server
+	 * @author Anuj Kumar
+	 * @param boolean $raw to suggest raw result or processed
+	 * @param boolean $sortHeader convert header text into the 
+	 * @return array/text ['header','body',info] / raw response from server text
+	 */
 	function requestNow($raw = false,$sortHeader = false)
 	{
 		if ($this->url && $this->verifyUrl()):
@@ -243,21 +278,7 @@ class Curlify
 				curl_setopt($request, CURLOPT_POST, 1);
 				if(count($this->data) or count($this->files))
 					$postData = array_merge($this->buildPostData($this->data),$this->buildPostFiles($this->files));
-
-					// // $postData = [];
-					// if (count($this->files) and count($this->data) === 0){
-					// 	$postData = $this->files;
-					// }
-					// elseif (count($this->data) and count($this->files) === 0){
-					// 	$postData = array_merge($this->data,[]);
-					// } else {
-					// 	$files = $this->buildFileData();
-					// 	$postData = array_merge($this->data,$files);
-					// 	// $postData = $this->data;
-					// }
-
-					// devel_logging($postData);
-					
+					devel_logging($postData);
 					curl_setopt($request,CURLOPT_POSTFIELDS,$postData);
 			endif;
 
@@ -298,11 +319,6 @@ class Curlify
 				devel_logging("invalid url or url not set yet\n");
 		return false;
 		endif;
-	}
-
-	function hello($name)
-	{
-
 	}
 }
 ?>
