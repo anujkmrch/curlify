@@ -44,6 +44,10 @@ class Curlify
 
 	var $optHeader = [];
 
+    var $followLocation = true;
+
+    
+
 	/**
 	 * Set UserAgent for your curl agent
 	 * @author Anuj Kumar
@@ -53,6 +57,8 @@ class Curlify
 	{
 		$this->userAgent = $userAgent;
 	}
+
+	
 
 	/**
 	 * Enable/ Disable Debugging
@@ -268,6 +274,7 @@ class Curlify
 			$request = curl_init();
 			curl_setopt_array($request, array(
 			    CURLOPT_RETURNTRANSFER => 1,
+                            CURLOPT_FOLLOWLOCATION => $this->followLocation,
 			    CURLOPT_HEADER=> 1,
 			    CURLOPT_VERBOSE=> $this->verbose,
 			    CURLOPT_USERAGENT => $this->userAgent,
@@ -325,7 +332,7 @@ class Curlify
 		endif;
 	}
 
-	function getResult($raw = false,$sortHeader = false)
+	function getResult($raw = false,$sortHeader = false, $fixFollowupBody=false)
 	{
 		if ($raw){
 				return $this->response;
@@ -348,7 +355,11 @@ class Curlify
 					devel_logging($headers);
 				}
 			endif;
-			return ['headers'=>$headers,'body'=>$body];
+                        $fheaders = null;
+                        if($fixFollowupBody):
+                                list($fheaders, $body) = explode("\r\n\r\n", $body, 2);
+                        endif;
+			return ['headers'=>$headers,'fheaders'=>$fheaders,'body'=>$body];
 	}
 }
 ?>
