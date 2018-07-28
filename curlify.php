@@ -46,6 +46,24 @@ class Curlify
 
     var $followLocation = true;
 
+    function __construct($allowFollow = true){
+    	$this->followLocation = $allowFollow;
+    }
+
+    /**
+	 * Disable follow location redirect
+	 */
+	function disableFollowLocation(){
+		$this->followLocation = false;
+	}
+
+	/**
+	 * Enable follow location redirects
+	 */
+	function enableFollowLocation(){
+		$this->followLocation= true;
+	}
+
     
 
 	/**
