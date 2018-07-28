@@ -38,6 +38,10 @@ class Curlify
 
 	var $handleRedirect = false;
 
+	var $response = null;
+
+	var $info = [];
+
 	var $optHeader = [];
 
 	/**
@@ -258,7 +262,7 @@ class Curlify
 	 * @param boolean $sortHeader convert header text into the 
 	 * @return array/text ['header','body',info] / raw response from server text
 	 */
-	function requestNow($raw = false,$sortHeader = false)
+	function requestNow()
 	{
 		if ($this->url && $this->verifyUrl()):
 			$request = curl_init();
@@ -282,29 +286,60 @@ class Curlify
 					curl_setopt($request,CURLOPT_POSTFIELDS,$postData);
 			endif;
 
-			if (!$response = curl_exec($request)):
+			if (!$this->response = curl_exec($request)):
 				if($this->debug)
 					devel_logging('Error: "' . curl_error($request) . '" - Code: ' . curl_errno($request)."\n");
 				return false;
 			endif;
 
-			$info = curl_getinfo($request);
+			$this->info = curl_getinfo($request);
 
 			curl_close($request);
+			return true;
+			// if ($raw){
+			// 	return $this->response;
+			// }
 
-			if ($raw){
-				return $response;
+			// #separate header and body
+			// list($headers, $body) = explode("\r\n\r\n", $this->response, 2);
+
+			// if($sortHeader):
+			// 	$lines = explode("\n", $headers);
+			// 	$headers = [];
+			// 	$status = array_shift($lines);
+			// 	$headers["Status"] = $status;
+			// 	$headers["Code"] = $info["http_code"];
+			// 	foreach ($lines as $line):
+			//         list ($key, $value) = explode(': ', $line);
+			//         $headers[$key] = $value;
+			//     endforeach;
+			// 	if($this->debug){
+			// 		devel_logging($headers);
+			// 	}
+			// endif;
+			// return ['headers'=>$headers,'body'=>$body,'info'=>$info];
+		else:
+			if($this->debug == 1)
+				devel_logging("invalid url or url not set yet\n");
+		return false;
+		endif;
+	}
+
+	function getResult($raw = false,$sortHeader = false)
+	{
+		if ($raw){
+				return $this->response;
 			}
 
 			#separate header and body
-			list($headers, $body) = explode("\r\n\r\n", $response, 2);
+			list($headers, $body) = explode("\r\n\r\n", $this->response, 2);
 
 			if($sortHeader):
 				$lines = explode("\n", $headers);
 				$headers = [];
 				$status = array_shift($lines);
 				$headers["Status"] = $status;
-				$headers["Code"] = $info["http_code"];
+				$headers["Code"] = $this->info["http_code"];
 				foreach ($lines as $line):
 			        list ($key, $value) = explode(': ', $line);
 			        $headers[$key] = $value;
@@ -313,12 +348,7 @@ class Curlify
 					devel_logging($headers);
 				}
 			endif;
-			return ['headers'=>$headers,'body'=>$body,'info'=>$info];
-		else:
-			if($this->debug == 1)
-				devel_logging("invalid url or url not set yet\n");
-		return false;
-		endif;
+			return ['headers'=>$headers,'body'=>$body];
 	}
 }
 ?>
